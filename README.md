@@ -1,6 +1,40 @@
-# ScheduleMate - Lecture Hall Digital Signage System (Backend API)
+# ScheduleMate - Lecture Hall Digital Signage System (Admin Portal)
 
-ScheduleMate is a Lecture Hall Digital Signage System built for **Sparkline Academy** (Node.js + Express + PostgreSQL + JWT + REST API).
+ScheduleMate is a Lecture Hall Digital Signage System built for **Sparkline Academy** (React + Node.js/Express + PostgreSQL + JWT + REST API).
+
+---
+
+## 🚀 How to Run the Application
+
+### 1. Database & Migrations
+Ensure PostgreSQL is running and `schedulemate_db` is created.
+
+Apply the schema and migrations:
+```bash
+# Initial schema & seed (if setting up fresh)
+psql -U postgres -d schedulemate_db -f database/schema.sql
+psql -U postgres -d schedulemate_db -f database/seed.sql
+
+# Run idempotent migration 002 (Adds location, descriptions, and statuses)
+psql -U postgres -d schedulemate_db -f database/migrations/002_admin_ui_fields.sql
+```
+
+### 2. Backend Server (`server/`)
+```bash
+cd server
+npm install
+# Ensure .env contains DB credentials, JWT_SECRET, and JWT_EXPIRES_IN
+npm run dev
+```
+
+### 3. Frontend Client (`client/`)
+```bash
+cd client
+npm install
+# Ensure .env contains REACT_APP_API_BASE_URL=http://localhost:5000/api
+npm start
+```
+Access the Admin Portal in your browser at `http://localhost:3000`.
 
 ---
 
@@ -20,27 +54,22 @@ To preserve relational data integrity and prevent orphan records:
 
 ## 🛠️ Environment Configuration & JWT Setup
 
-1. Copy `.env.example` to `.env` inside the `server/` directory:
-   ```bash
-   cp server/.env.example server/.env
-   ```
-2. Configure your database connection details and JWT secret in `server/.env`:
-   ```env
-   PORT=5000
-   DB_USER=postgres
-   DB_PASSWORD=your_password
-   DB_HOST=localhost
-   DB_NAME=schedulemate_db
-   DB_PORT=5432
-   JWT_SECRET=schedulemate_secret_key_sparkline_academy_2026
-   JWT_EXPIRES_IN=8h
-   ```
-3. Start the server:
-   ```bash
-   cd server
-   npm install
-   npm run dev
-   ```
+### Backend Environment (`server/.env`)
+```env
+PORT=5000
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_NAME=schedulemate_db
+DB_PORT=5432
+JWT_SECRET=schedulemate_secret_key_sparkline_academy_2026
+JWT_EXPIRES_IN=8h
+```
+
+### Frontend Environment (`client/.env`)
+```env
+REACT_APP_API_BASE_URL=http://localhost:5000/api
+```
 
 ---
 
@@ -80,7 +109,7 @@ To preserve relational data integrity and prevent orphan records:
 | **Lecturers** | `POST` | `/api/lecturers` | Yes | Create a new lecturer |
 | **Lecturers** | `PUT` | `/api/lecturers/:id` | Yes | Update a lecturer |
 | **Lecturers** | `DELETE` | `/api/lecturers/:id` | Yes | Delete a lecturer (blocked if sessions exist) |
-| **Sessions** | `GET` | `/api/sessions` | Yes | List sessions (filters: `?date=`, `?building_id=`, `?floor_id=`, `?hall_id=`, `?status=`) |
+| **Sessions** | `GET` | `/api/sessions` | Yes | List sessions (filters: `?date=`, `?date_from=`, `?date_to=`, `?building_id=`, `?floor_id=`, `?hall_id=`, `?status=`) |
 | **Sessions** | `GET` | `/api/sessions/:id` | Yes | Get single session details with computed status |
 | **Sessions** | `POST` | `/api/sessions` | Yes | Create session with hall overlap check |
 | **Sessions** | `PUT` | `/api/sessions/:id` | Yes | Edit session with hall overlap check |
@@ -94,4 +123,4 @@ To preserve relational data integrity and prevent orphan records:
 | **Displays** | `DELETE` | `/api/displays/:id` | Yes | Delete a digital display |
 | **Public Signage**| `GET` | `/api/signage/:displayId` | **No** | TV display main endpoint (ongoing, upcoming, cancelled, rescheduled) |
 | **Public Signage**| `GET` | `/api/signage/:displayId/room-status` | **No** | TV display live room status per hall on floor side |
-| **Dashboard** | `GET` | `/api/dashboard` | Yes | Summary counts for admin dashboard cards & session breakdown |
+| **Dashboard** | `GET` | `/api/dashboard` | Yes | Summary counts for admin dashboard cards, room occupancy, & session breakdown |

@@ -52,17 +52,16 @@ const createFloor = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { building_id, floor_number, floor_name } = req.body;
+        const { building_id, floor_number, floor_name, description } = req.body;
 
-        // Verify building exists
         const bCheck = await pool.query('SELECT building_id FROM buildings WHERE building_id = $1', [building_id]);
         if (bCheck.rows.length === 0) {
             return sendError(res, 'Specified building_id does not exist', 400);
         }
 
         const result = await pool.query(
-            'INSERT INTO floors (building_id, floor_number, floor_name) VALUES ($1, $2, $3) RETURNING *',
-            [building_id, floor_number, floor_name ? floor_name.trim() : null]
+            'INSERT INTO floors (building_id, floor_number, floor_name, description) VALUES ($1, $2, $3, $4) RETURNING *',
+            [building_id, floor_number, floor_name ? floor_name.trim() : null, description ? description.trim() : null]
         );
 
         return sendSuccess(res, result.rows[0], 201, 'Floor created successfully');
@@ -82,7 +81,7 @@ const updateFloor = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { building_id, floor_number, floor_name } = req.body;
+        const { building_id, floor_number, floor_name, description } = req.body;
 
         const existing = await pool.query('SELECT floor_id FROM floors WHERE floor_id = $1', [id]);
         if (existing.rows.length === 0) {
@@ -95,8 +94,8 @@ const updateFloor = async (req, res, next) => {
         }
 
         const result = await pool.query(
-            'UPDATE floors SET building_id = $1, floor_number = $2, floor_name = $3, updated_at = NOW() WHERE floor_id = $4 RETURNING *',
-            [building_id, floor_number, floor_name ? floor_name.trim() : null, id]
+            'UPDATE floors SET building_id = $1, floor_number = $2, floor_name = $3, description = $4, updated_at = NOW() WHERE floor_id = $5 RETURNING *',
+            [building_id, floor_number, floor_name ? floor_name.trim() : null, description ? description.trim() : null, id]
         );
 
         return sendSuccess(res, result.rows[0], 200, 'Floor updated successfully');
@@ -117,7 +116,6 @@ const deleteFloor = async (req, res, next) => {
             return sendError(res, 'Floor not found', 404);
         }
 
-        // Delete guard: check floor_sides
         const fsCheck = await pool.query('SELECT floor_side_id FROM floor_sides WHERE floor_id = $1 LIMIT 1', [id]);
         if (fsCheck.rows.length > 0) {
             return sendError(res, 'Cannot delete floor: active floor sides are linked to this floor', 409);

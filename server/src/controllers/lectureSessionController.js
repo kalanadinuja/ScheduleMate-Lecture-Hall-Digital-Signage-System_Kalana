@@ -6,7 +6,7 @@ const { checkSessionOverlap } = require('../services/sessionOverlapService');
 
 const getAllSessions = async (req, res, next) => {
     try {
-        const { date, building_id, floor_id, hall_id, status } = req.query;
+        const { date, date_from, date_to, building_id, floor_id, hall_id, status } = req.query;
 
         let query = `
             SELECT s.*, 
@@ -30,7 +30,10 @@ const getAllSessions = async (req, res, next) => {
         const conditions = [];
         const params = [];
 
-        if (date) {
+        if (date_from && date_to) {
+            params.push(date_from, date_to);
+            conditions.push(`s.session_date BETWEEN $${params.length - 1} AND $${params.length}`);
+        } else if (date) {
             params.push(date);
             conditions.push(`s.session_date = $${params.length}`);
         }
@@ -112,7 +115,7 @@ const createSession = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type } = req.body;
+        const { module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type, description } = req.body;
 
         // Verify referenced entities exist
         const mCheck = await pool.query('SELECT module_id FROM modules WHERE module_id = $1', [module_id]);
@@ -136,9 +139,9 @@ const createSession = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO lecture_sessions 
-             (module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'Scheduled') RETURNING *`,
-            [module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type || 'Lecture']
+             (module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type, description, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Scheduled') RETURNING *`,
+            [module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type || 'Lecture', description ? description.trim() : null]
         );
 
         const newSession = attachComputedStatus(result.rows[0]);
@@ -156,7 +159,7 @@ const updateSession = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type } = req.body;
+        const { module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type, description } = req.body;
 
         const existing = await pool.query('SELECT * FROM lecture_sessions WHERE session_id = $1', [id]);
         if (existing.rows.length === 0) {
@@ -175,9 +178,9 @@ const updateSession = async (req, res, next) => {
 
         const result = await pool.query(
             `UPDATE lecture_sessions 
-             SET module_id = $1, lecturer_id = $2, hall_id = $3, session_date = $4, start_time = $5, end_time = $6, session_type = $7, updated_at = NOW() 
-             WHERE session_id = $8 RETURNING *`,
-            [module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type || 'Lecture', id]
+             SET module_id = $1, lecturer_id = $2, hall_id = $3, session_date = $4, start_time = $5, end_time = $6, session_type = $7, description = $8, updated_at = NOW() 
+             WHERE session_id = $9 RETURNING *`,
+            [module_id, lecturer_id, hall_id, session_date, start_time, end_time, session_type || 'Lecture', description ? description.trim() : null, id]
         );
 
         const updatedSession = attachComputedStatus(result.rows[0]);

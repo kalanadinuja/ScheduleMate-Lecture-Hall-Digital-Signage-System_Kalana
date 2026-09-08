@@ -4,7 +4,14 @@ const { validateBuilding } = require('../validations');
 
 const getAllBuildings = async (req, res, next) => {
     try {
-        const result = await pool.query('SELECT * FROM buildings ORDER BY building_id');
+        const query = `
+            SELECT b.*, 
+                   (SELECT COUNT(*)::int FROM floors f WHERE f.building_id = b.building_id) AS floor_count,
+                   (SELECT COUNT(*)::int FROM lecture_halls lh JOIN floor_sides fs ON lh.floor_side_id = fs.floor_side_id JOIN floors f ON fs.floor_id = f.floor_id WHERE f.building_id = b.building_id) AS hall_count
+            FROM buildings b
+            ORDER BY b.building_id
+        `;
+        const result = await pool.query(query);
         return sendSuccess(res, result.rows);
     } catch (err) {
         next(err);
@@ -14,7 +21,13 @@ const getAllBuildings = async (req, res, next) => {
 const getBuildingById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT * FROM buildings WHERE building_id = $1', [id]);
+        const query = `
+            SELECT b.*, 
+                   (SELECT COUNT(*)::int FROM floors f WHERE f.building_id = b.building_id) AS floor_count
+            FROM buildings b
+            WHERE b.building_id = $1
+        `;
+        const result = await pool.query(query, [id]);
         if (result.rows.length === 0) {
             return sendError(res, 'Building not found', 404);
         }
@@ -31,17 +44,16 @@ const createBuilding = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { building_code, building_name } = req.body;
+        const { building_code, building_name, location } = req.body;
 
-        // Check for duplicate building_code
         const check = await pool.query('SELECT building_id FROM buildings WHERE LOWER(building_code) = LOWER($1)', [building_code.trim()]);
         if (check.rows.length > 0) {
             return sendError(res, `Building code '${building_code}' already exists`, 409);
         }
 
         const result = await pool.query(
-            'INSERT INTO buildings (building_code, building_name) VALUES ($1, $2) RETURNING *',
-            [building_code.trim(), building_name.trim()]
+            'INSERT INTO buildings (building_code, building_name, location) VALUES ($1, $2, $3) RETURNING *',
+            [building_code.trim(), building_name.trim(), location ? location.trim() : null]
         );
 
         return sendSuccess(res, result.rows[0], 201, 'Building created successfully');
@@ -61,23 +73,21 @@ const updateBuilding = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { building_code, building_name } = req.body;
+        const { building_code, building_name, location } = req.body;
 
-        // Check if building exists
         const existing = await pool.query('SELECT building_id FROM buildings WHERE building_id = $1', [id]);
         if (existing.rows.length === 0) {
             return sendError(res, 'Building not found', 404);
         }
 
-        // Check duplicate code on other building
         const check = await pool.query('SELECT building_id FROM buildings WHERE LOWER(building_code) = LOWER($1) AND building_id <> $2', [building_code.trim(), id]);
         if (check.rows.length > 0) {
             return sendError(res, `Building code '${building_code}' already exists`, 409);
         }
 
         const result = await pool.query(
-            'UPDATE buildings SET building_code = $1, building_name = $2, updated_at = NOW() WHERE building_id = $3 RETURNING *',
-            [building_code.trim(), building_name.trim(), id]
+            'UPDATE buildings SET building_code = $1, building_name = $2, location = $3, updated_at = NOW() WHERE building_id = $4 RETURNING *',
+            [building_code.trim(), building_name.trim(), location ? location.trim() : null, id]
         );
 
         return sendSuccess(res, result.rows[0], 200, 'Building updated successfully');
@@ -98,7 +108,6 @@ const deleteBuilding = async (req, res, next) => {
             return sendError(res, 'Building not found', 404);
         }
 
-        // Delete guard: check existing floors
         const floorsCheck = await pool.query('SELECT floor_id FROM floors WHERE building_id = $1 LIMIT 1', [id]);
         if (floorsCheck.rows.length > 0) {
             return sendError(res, 'Cannot delete building: active floors are linked to this building', 409);

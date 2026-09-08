@@ -4,18 +4,28 @@ const { validateFloorSide } = require('../validations');
 
 const getAllFloorSides = async (req, res, next) => {
     try {
-        const { floor_id } = req.query;
+        const { floor_id, building_id } = req.query;
         let query = `
             SELECT fs.*, f.floor_number, f.floor_name, f.building_id, b.building_code, b.building_name
             FROM floor_sides fs
             JOIN floors f ON fs.floor_id = f.floor_id
             JOIN buildings b ON f.building_id = b.building_id
         `;
+        const conditions = [];
         const params = [];
 
         if (floor_id) {
-            query += ' WHERE fs.floor_id = $1';
             params.push(floor_id);
+            conditions.push(`fs.floor_id = $${params.length}`);
+        }
+
+        if (building_id) {
+            params.push(building_id);
+            conditions.push(`f.building_id = $${params.length}`);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
         }
 
         query += ' ORDER BY fs.floor_side_id';
@@ -54,7 +64,7 @@ const createFloorSide = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { floor_id, side_name, description } = req.body;
+        const { floor_id, side_name, description, status } = req.body;
 
         const fCheck = await pool.query('SELECT floor_id FROM floors WHERE floor_id = $1', [floor_id]);
         if (fCheck.rows.length === 0) {
@@ -62,8 +72,8 @@ const createFloorSide = async (req, res, next) => {
         }
 
         const result = await pool.query(
-            'INSERT INTO floor_sides (floor_id, side_name, description) VALUES ($1, $2, $3) RETURNING *',
-            [floor_id, side_name.trim(), description ? description.trim() : null]
+            'INSERT INTO floor_sides (floor_id, side_name, description, status) VALUES ($1, $2, $3, $4) RETURNING *',
+            [floor_id, side_name.trim(), description ? description.trim() : null, status ? status.trim() : 'Active']
         );
 
         return sendSuccess(res, result.rows[0], 201, 'Floor side created successfully');
@@ -83,7 +93,7 @@ const updateFloorSide = async (req, res, next) => {
             return sendError(res, errors.join(', '), 400);
         }
 
-        const { floor_id, side_name, description } = req.body;
+        const { floor_id, side_name, description, status } = req.body;
 
         const existing = await pool.query('SELECT floor_side_id FROM floor_sides WHERE floor_side_id = $1', [id]);
         if (existing.rows.length === 0) {
@@ -96,8 +106,8 @@ const updateFloorSide = async (req, res, next) => {
         }
 
         const result = await pool.query(
-            'UPDATE floor_sides SET floor_id = $1, side_name = $2, description = $3, updated_at = NOW() WHERE floor_side_id = $4 RETURNING *',
-            [floor_id, side_name.trim(), description ? description.trim() : null, id]
+            'UPDATE floor_sides SET floor_id = $1, side_name = $2, description = $3, status = $4, updated_at = NOW() WHERE floor_side_id = $5 RETURNING *',
+            [floor_id, side_name.trim(), description ? description.trim() : null, status ? status.trim() : 'Active', id]
         );
 
         return sendSuccess(res, result.rows[0], 200, 'Floor side updated successfully');
@@ -118,7 +128,6 @@ const deleteFloorSide = async (req, res, next) => {
             return sendError(res, 'Floor side not found', 404);
         }
 
-        // Delete guards
         const hallsCheck = await pool.query('SELECT hall_id FROM lecture_halls WHERE floor_side_id = $1 LIMIT 1', [id]);
         if (hallsCheck.rows.length > 0) {
             return sendError(res, 'Cannot delete floor side: active lecture halls are linked to this floor side', 409);
