@@ -1,4 +1,4 @@
-# ScheduleMate - Lecture Hall Digital Signage System (Admin Portal)
+# ScheduleMate - Lecture Hall Digital Signage System (Admin Portal & Signage Viewer)
 
 ScheduleMate is a Lecture Hall Digital Signage System built for **Sparkline Academy** (React + Node.js/Express + PostgreSQL + JWT + REST API).
 
@@ -17,6 +17,9 @@ psql -U postgres -d schedulemate_db -f database/seed.sql
 
 # Run idempotent migration 002 (Adds location, descriptions, and statuses)
 psql -U postgres -d schedulemate_db -f database/migrations/002_admin_ui_fields.sql
+
+# Run idempotent migration 003 (Adds status_note and status_until to lecture_halls for signage maintenance notes)
+psql -U postgres -d schedulemate_db -f database/migrations/003_signage_hall_notes.sql
 ```
 
 ### 2. Backend Server (`server/`)
@@ -35,6 +38,21 @@ npm install
 npm start
 ```
 Access the Admin Portal in your browser at `http://localhost:3000`.
+Access the Corridor Signage Display Viewer at `http://localhost:3000/signage/:displayCode` (e.g., `http://localhost:3000/signage/DSP-0101` or `http://localhost:3000/signage/1`).
+
+---
+
+## 🖥️ Digital Signage Viewer & Slide Rotation
+
+The physical TV displays mounted in lecture hall corridors run the unauthenticated, read-only signage viewer route:
+`http://localhost:3000/signage/:displayCode` (e.g. `http://localhost:3000/signage/DSP-0101` or `http://localhost:3000/signage/1`).
+
+### Slide Rotation Assumption & Configuration
+- The display automatically cycles through slides on an 8-second timer (`SLIDE_DURATION_MS = 8000`):
+  `Ongoing Sessions` → `Upcoming Sessions` → `Room Status` → `Session Updates` (conditional) → `repeat`.
+- **Session Updates Slide**: Combines today's cancelled and rescheduled sessions on this floor-side. It is **dynamically included** in the rotation cycle only when there is ≥1 cancelled or rescheduled session today; otherwise, it is skipped.
+- **Polling vs. Clock**: Polling refetches backend data every `refresh_interval_seconds` (default 30s). The client clock and upcoming session countdowns tick live every second locally between polls, resyncing on each poll.
+- **Resilience**: If the server drops or network blips occur, the viewer retains the last-known-good schedule on screen with a discreet reconnecting badge instead of blanking or crashing.
 
 ---
 
@@ -121,6 +139,6 @@ REACT_APP_API_BASE_URL=http://localhost:5000/api
 | **Displays** | `POST` | `/api/displays` | Yes | Create a new digital display configuration |
 | **Displays** | `PUT` | `/api/displays/:id` | Yes | Update digital display configuration |
 | **Displays** | `DELETE` | `/api/displays/:id` | Yes | Delete a digital display |
-| **Public Signage**| `GET` | `/api/signage/:displayId` | **No** | TV display main endpoint (ongoing, upcoming, cancelled, rescheduled) |
+| **Public Signage**| `GET` | `/api/signage/:displayId` | **No** | TV display main endpoint (supports `display_id` or `display_code`) |
 | **Public Signage**| `GET` | `/api/signage/:displayId/room-status` | **No** | TV display live room status per hall on floor side |
 | **Dashboard** | `GET` | `/api/dashboard` | Yes | Summary counts for admin dashboard cards, room occupancy, & session breakdown |

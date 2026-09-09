@@ -17,13 +17,17 @@ import LectureSessions from './pages/LectureSessions';
 import DigitalDisplays from './pages/DigitalDisplays';
 import Reports from './pages/Reports';
 
+// Public Signage Viewer Page
+import SignagePage from './signage/SignagePage';
+
 function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
                 <Routes>
-                    {/* Unprotected Auth Route */}
+                    {/* Unprotected Auth & Public Routes */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/signage/:displayCode" element={<SignagePage />} />
 
                     {/* Protected Admin Routes */}
                     <Route
