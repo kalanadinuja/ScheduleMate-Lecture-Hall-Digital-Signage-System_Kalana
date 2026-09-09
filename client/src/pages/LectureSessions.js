@@ -488,6 +488,7 @@ const LectureSessions = () => {
                             selectedFloorId={filterLoc.floor_id}
                             selectedHallId={filterLoc.hall_id}
                             showFloorSide={false}
+                            showHall={false}
                             onChange={(loc) => setFilterLoc((prev) => ({ ...prev, ...loc }))}
                         />
                     </div>
