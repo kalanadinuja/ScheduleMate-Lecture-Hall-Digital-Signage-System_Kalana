@@ -74,19 +74,23 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
     let borderColor = 'border-emerald-500/40 bg-slate-900/90';
     let statusPillStyle = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
     let statusText = 'ONGOING';
+    let statusDot = 'bg-emerald-400';
 
     if (status === 'Upcoming') {
         borderColor = 'border-blue-500/40 bg-slate-900/90';
         statusPillStyle = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
         statusText = 'UPCOMING';
+        statusDot = null;
     } else if (status === 'Cancelled') {
         borderColor = 'border-rose-500/50 bg-slate-900/90';
         statusPillStyle = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
         statusText = 'CANCELLED';
+        statusDot = null;
     } else if (status === 'Rescheduled') {
         borderColor = 'border-amber-500/50 bg-slate-900/90';
         statusPillStyle = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
         statusText = 'RESCHEDULED';
+        statusDot = null;
     }
 
     const hallCode = session.hall_code || 'LH';
@@ -111,16 +115,17 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
             <div>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <span className="bg-slate-800 text-white font-black text-lg px-3.5 py-1.5 rounded-xl border border-slate-700 shadow-sm">
+                        <span className="bg-slate-800 text-white font-black text-xl px-3.5 py-1.5 rounded-xl border border-slate-700 shadow-sm">
                             {hallCode}
                         </span>
                         <div>
-                            <span className="text-sm font-bold text-slate-200">{hallName}</span>
+                            <span className="text-base font-bold text-slate-200">{hallName}</span>
                         </div>
                     </div>
 
-                    <div className={`px-3.5 py-1 rounded-full text-xs font-black tracking-wider uppercase border ${statusPillStyle}`}>
-                        {statusText}
+                    <div className={`px-3.5 py-1 rounded-full text-sm font-black tracking-wider uppercase border flex items-center space-x-1.5 ${statusPillStyle}`}>
+                        {statusDot && <span className={`w-2 h-2 rounded-full ${statusDot}`}></span>}
+                        <span>{statusText}</span>
                     </div>
                 </div>
 
@@ -129,11 +134,11 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
                 {/* Session Time & Module Badge */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
-                        <span className="bg-blue-950/80 text-blue-300 font-extrabold text-xs px-2.5 py-1 rounded-md border border-blue-800/80 uppercase">
+                        <span className="bg-blue-950/80 text-blue-300 font-extrabold text-sm px-2.5 py-1 rounded-md border border-blue-800/80 uppercase">
                             {moduleCode}
                         </span>
-                        <div className="flex items-center space-x-1.5 text-slate-300 text-sm font-semibold">
-                            <Clock className="w-4 h-4 text-blue-400" />
+                        <div className="flex items-center space-x-1.5 text-slate-300 text-base font-semibold">
+                            <Clock className="w-5 h-5 text-blue-400" />
                             {status === 'Rescheduled' ? (
                                 <span><strong className="text-amber-300 font-bold">NEW:</strong> {startTimeFormatted} - {endTimeFormatted}</span>
                             ) : (
@@ -144,25 +149,25 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
 
                     {/* Live Countdown for Upcoming */}
                     {countdownText && (
-                        <div className="bg-blue-500/20 text-blue-200 border border-blue-500/40 px-3 py-0.5 rounded-full text-xs font-bold animate-pulse">
+                        <div className="bg-blue-500/20 text-blue-200 border border-blue-500/40 px-3 py-0.5 rounded-full text-sm font-bold animate-pulse">
                             {countdownText}
                         </div>
                     )}
                 </div>
 
                 {/* Session Title & Lecturer */}
-                <h3 className="text-xl font-bold text-white leading-tight mb-2 tracking-wide line-clamp-2">
+                <h3 className="text-2xl font-bold text-white leading-tight mb-2 tracking-wide line-clamp-2">
                     {moduleName}
                 </h3>
-                <p className="text-sm font-medium text-slate-400">
+                <p className="text-base font-medium text-slate-400">
                     {lecturerName}
                 </p>
 
                 {/* Message Boxes for Cancelled & Rescheduled */}
                 {status === 'Cancelled' && (
                     <div className="mt-4 bg-rose-950/60 border border-rose-800/80 rounded-xl p-3.5 flex items-start space-x-3 text-rose-200">
-                        <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
-                        <div className="text-xs">
+                        <AlertTriangle className="w-6 h-6 text-rose-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm">
                             <strong className="font-bold text-rose-300 block mb-0.5">Session Cancelled for Today</strong>
                             <p className="text-rose-200 font-medium">Reason: {session.cancellation_reason || 'Lecturer unavailable.'}</p>
                         </div>
@@ -171,8 +176,8 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
 
                 {status === 'Rescheduled' && (
                     <div className="mt-4 bg-amber-950/60 border border-amber-800/80 rounded-xl p-3.5 flex items-start space-x-3 text-amber-200">
-                        <ArrowRightLeft className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div className="text-xs">
+                        <ArrowRightLeft className="w-6 h-6 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm">
                             <strong className="font-bold text-amber-300 block mb-0.5">Session Rescheduled</strong>
                             <p className="text-amber-100 font-medium">
                                 Rescheduled from {origStartTimeFormatted} to {startTimeFormatted} in {session.hall_code || hallCode}.
@@ -184,12 +189,12 @@ export default function SignageSessionCard({ session, type = 'ongoing', now = ne
 
             {/* Bottom Footer Row: Capacity & Deterministic Tag Pill */}
             <div className="mt-6 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                <div className="flex items-center space-x-1.5 text-slate-400 text-xs font-semibold">
-                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex items-center space-x-1.5 text-slate-400 text-sm font-semibold">
+                    <Users className="w-4 h-4 text-slate-400" />
                     <span>{capacity} Seats</span>
                 </div>
 
-                <div className="bg-slate-800 text-slate-300 text-xs font-semibold px-3 py-1 rounded-lg border border-slate-700">
+                <div className="bg-slate-800 text-slate-300 text-sm font-semibold px-3 py-1 rounded-lg border border-slate-700">
                     {tagPill}
                 </div>
             </div>
