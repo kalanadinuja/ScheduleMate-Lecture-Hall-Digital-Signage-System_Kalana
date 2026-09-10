@@ -2,7 +2,17 @@ import React from 'react';
 import SignageSessionCard from '../components/SignageSessionCard';
 import { Clock } from 'lucide-react';
 
-export default function UpcomingSlide({ sessions = [], displayName = 'CORRIDOR DISPLAY', now = new Date() }) {
+export default function UpcomingSlide({
+    sessions = [],
+    displayName = 'CORRIDOR DISPLAY',
+    now = new Date(),
+    currentPage = 0,
+    totalPages = 1
+}) {
+    const pageIndex = typeof currentPage === 'number' ? currentPage : 0;
+    const startIndex = pageIndex * 3;
+    const pagedSessions = sessions.slice(startIndex, startIndex + 3);
+
     const windowString = (() => {
         try {
             const end = new Date(now.getTime() + 3 * 60 * 60 * 1000);
@@ -26,6 +36,11 @@ export default function UpcomingSlide({ sessions = [], displayName = 'CORRIDOR D
                     <span className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
                         {displayName}
                     </span>
+                    {totalPages > 1 && (
+                        <span className="bg-slate-800 text-blue-400 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                            PAGE {pageIndex + 1} / {totalPages}
+                        </span>
+                    )}
                 </div>
 
                 {/* Extra Right Header Pill */}
@@ -38,8 +53,8 @@ export default function UpcomingSlide({ sessions = [], displayName = 'CORRIDOR D
             {/* Content Grid or Empty State */}
             {sessions.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6 flex-1">
-                    {sessions.slice(0, 3).map((session, idx) => (
-                        <SignageSessionCard key={session.session_id || idx} session={session} type="upcoming" now={now} />
+                    {pagedSessions.map((session, idx) => (
+                        <SignageSessionCard key={session.session_id || `${startIndex + idx}`} session={session} type="upcoming" now={now} />
                     ))}
                 </div>
             ) : (

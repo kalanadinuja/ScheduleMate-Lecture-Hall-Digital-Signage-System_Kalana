@@ -2,9 +2,19 @@ import React from 'react';
 import SignageSessionCard from '../components/SignageSessionCard';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 
-export default function SessionUpdatesSlide({ cancelledSessions = [], rescheduledSessions = [], displayName = 'CORRIDOR DISPLAY', now = new Date() }) {
+export default function SessionUpdatesSlide({
+    cancelledSessions = [],
+    rescheduledSessions = [],
+    displayName = 'CORRIDOR DISPLAY',
+    now = new Date(),
+    currentPage = 0,
+    totalPages = 1
+}) {
     const combinedUpdates = [...cancelledSessions, ...rescheduledSessions];
     const totalCount = combinedUpdates.length;
+    const pageIndex = typeof currentPage === 'number' ? currentPage : 0;
+    const startIndex = pageIndex * 3;
+    const pagedUpdates = combinedUpdates.slice(startIndex, startIndex + 3);
 
     return (
         <div className="flex-1 p-8 flex flex-col justify-between overflow-hidden">
@@ -18,6 +28,11 @@ export default function SessionUpdatesSlide({ cancelledSessions = [], reschedule
                     <span className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
                         {displayName}
                     </span>
+                    {totalPages > 1 && (
+                        <span className="bg-slate-800 text-amber-400 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                            PAGE {pageIndex + 1} / {totalPages}
+                        </span>
+                    )}
                 </div>
 
                 {/* Extra Right Header Pill */}
@@ -30,8 +45,8 @@ export default function SessionUpdatesSlide({ cancelledSessions = [], reschedule
             {/* Content: Grid or Fallback */}
             {combinedUpdates.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6 flex-1">
-                    {combinedUpdates.slice(0, 3).map((session, idx) => (
-                        <SignageSessionCard key={session.session_id || idx} session={session} type="update" now={now} />
+                    {pagedUpdates.map((session, idx) => (
+                        <SignageSessionCard key={session.session_id || `${startIndex + idx}`} session={session} type="update" now={now} />
                     ))}
                 </div>
             ) : (

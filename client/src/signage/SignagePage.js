@@ -2,7 +2,14 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useSignagePolling } from './hooks/useSignagePolling';
 import { useLiveClock } from './hooks/useLiveClock';
-import { useSlideRotation, SLIDES } from './hooks/useSlideRotation';
+import {
+    useSlideRotation,
+    SLIDES,
+    SLIDE_DURATION_MS,
+    PAGE_DURATION_MS
+} from './hooks/useSlideRotation';
+
+export { SLIDE_DURATION_MS, PAGE_DURATION_MS, SLIDES };
 
 import SignageHeader from './components/SignageHeader';
 import SignageFooter from './components/SignageFooter';
@@ -32,13 +39,21 @@ export default function SignagePage() {
         data?.current_time
     );
 
+    const ongoingSessions = data?.ongoing_sessions || [];
+    const upcomingSessions = data?.upcoming_sessions || [];
     const cancelledSessions = data?.cancelled_sessions || [];
     const rescheduledSessions = data?.rescheduled_sessions || [];
 
-    const { currentSlide } = useSlideRotation(
-        cancelledSessions.length,
-        rescheduledSessions.length
-    );
+    const {
+        currentSlide,
+        currentPage,
+        totalPages
+    } = useSlideRotation({
+        ongoingCount: ongoingSessions.length,
+        upcomingCount: upcomingSessions.length,
+        cancelledCount: cancelledSessions.length,
+        rescheduledCount: rescheduledSessions.length
+    });
 
     // Initial Loading State
     if (loading && !data) {
@@ -121,17 +136,21 @@ export default function SignagePage() {
             <main className="flex-1 flex flex-col min-h-0">
                 {currentSlide === SLIDES.ONGOING && (
                     <OngoingSlide
-                        sessions={data?.ongoing_sessions || []}
+                        sessions={ongoingSessions}
                         displayName={displayName}
                         now={now}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
                     />
                 )}
 
                 {currentSlide === SLIDES.UPCOMING && (
                     <UpcomingSlide
-                        sessions={data?.upcoming_sessions || []}
+                        sessions={upcomingSessions}
                         displayName={displayName}
                         now={now}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
                     />
                 )}
 
@@ -148,6 +167,8 @@ export default function SignagePage() {
                         rescheduledSessions={rescheduledSessions}
                         displayName={displayName}
                         now={now}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
                     />
                 )}
             </main>
