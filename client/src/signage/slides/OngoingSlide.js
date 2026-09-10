@@ -2,7 +2,17 @@ import React from 'react';
 import SignageSessionCard from '../components/SignageSessionCard';
 import { CalendarX } from 'lucide-react';
 
-export default function OngoingSlide({ sessions = [], displayName = 'CORRIDOR DISPLAY', now = new Date() }) {
+export default function OngoingSlide({
+    sessions = [],
+    displayName = 'CORRIDOR DISPLAY',
+    now = new Date(),
+    currentPage = 0,
+    totalPages = 1
+}) {
+    const pageIndex = typeof currentPage === 'number' ? currentPage : 0;
+    const startIndex = pageIndex * 3;
+    const pagedSessions = sessions.slice(startIndex, startIndex + 3);
+
     return (
         <div className="flex-1 p-8 flex flex-col justify-between overflow-hidden">
             {/* Slide Title Bar */}
@@ -15,14 +25,19 @@ export default function OngoingSlide({ sessions = [], displayName = 'CORRIDOR DI
                     <span className="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
                         {displayName}
                     </span>
+                    {totalPages > 1 && (
+                        <span className="bg-slate-800 text-emerald-400 border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                            PAGE {pageIndex + 1} / {totalPages}
+                        </span>
+                    )}
                 </div>
             </div>
 
             {/* Content: Grid or Empty State */}
             {sessions.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6 flex-1">
-                    {sessions.slice(0, 3).map((session, idx) => (
-                        <SignageSessionCard key={session.session_id || idx} session={session} type="ongoing" now={now} />
+                    {pagedSessions.map((session, idx) => (
+                        <SignageSessionCard key={session.session_id || `${startIndex + idx}`} session={session} type="ongoing" now={now} />
                     ))}
                 </div>
             ) : (
