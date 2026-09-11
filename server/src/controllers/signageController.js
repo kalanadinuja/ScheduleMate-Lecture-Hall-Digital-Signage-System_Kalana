@@ -49,7 +49,7 @@ const getSignageData = async (req, res, next) => {
             SELECT s.*, 
                    m.module_code, m.module_name,
                    l.full_name AS lecturer_name, l.title AS lecturer_title,
-                   lh.hall_code, lh.hall_name,
+                   lh.hall_code, lh.hall_name, lh.capacity, lh.hall_type,
                    oh.hall_code AS original_hall_code, oh.hall_name AS original_hall_name
             FROM lecture_sessions s
             JOIN modules m ON s.module_id = m.module_id
@@ -90,6 +90,11 @@ const getSignageData = async (req, res, next) => {
         });
 
         return sendSuccess(res, {
+            display: {
+                display_id: display.display_id,
+                display_code: display.display_code,
+                display_name: display.display_name
+            },
             building: {
                 building_id: display.building_id,
                 building_code: display.building_code,
@@ -132,9 +137,12 @@ const getRoomStatusData = async (req, res, next) => {
 
         const { dateStr: currentDate, timeStr: currentTime } = getColomboNowParts();
 
-        // Get all lecture halls for this floor side
+        // Get all lecture halls for this floor side, including status_note and status_until from migration 003
         const hallsResult = await pool.query(
-            'SELECT * FROM lecture_halls WHERE floor_side_id = $1 ORDER BY hall_code',
+            `SELECT hall_id, floor_side_id, hall_code, hall_name, description, hall_type, capacity, hall_status, status_note, status_until 
+             FROM lecture_halls 
+             WHERE floor_side_id = $1 
+             ORDER BY hall_code`,
             [display.floor_side_id]
         );
 
@@ -143,12 +151,12 @@ const getRoomStatusData = async (req, res, next) => {
             SELECT s.*, 
                    m.module_code, m.module_name,
                    l.full_name AS lecturer_name, l.title AS lecturer_title,
-                   lh.hall_code, lh.hall_name
+                   lh.hall_code, lh.hall_name, lh.capacity, lh.hall_type
             FROM lecture_sessions s
             JOIN modules m ON s.module_id = m.module_id
             JOIN lecturers l ON s.lecturer_id = l.lecturer_id
             JOIN lecture_halls lh ON s.hall_id = lh.hall_id
-            WHERE lh.floor_side_id = $1 AND s.session_date = $2
+            WHERE lh.floor_side_id = $1 AND (s.session_date = $2 OR s.original_session_date = $2)
             ORDER BY s.start_time ASC
         `;
 
@@ -158,14 +166,22 @@ const getRoomStatusData = async (req, res, next) => {
         const currentMinutes = timeToMinutes(currentTime);
 
         const roomStatuses = hallsResult.rows.map(hall => {
+            const baseObj = {
+                hall_id: hall.hall_id,
+                hall_code: hall.hall_code,
+                hall_name: hall.hall_name,
+                hall_status: hall.hall_status,
+                hall_type: hall.hall_type || 'Lecture',
+                capacity: hall.capacity,
+                status_note: hall.status_note || null,
+                status_until: hall.status_until || null
+            };
+
             if (hall.hall_status !== 'Active') {
                 return {
-                    hall_id: hall.hall_id,
-                    hall_code: hall.hall_code,
-                    hall_name: hall.hall_name,
-                    hall_status: hall.hall_status,
-                    capacity: hall.capacity,
+                    ...baseObj,
                     live_room_status: 'Temporarily Unavailable',
+                    cancellation_reason: null,
                     current_session: null,
                     next_session: null
                 };
@@ -175,71 +191,79 @@ const getRoomStatusData = async (req, res, next) => {
             const ongoingSession = hallSessions.find(s => s.computed_status === 'Ongoing');
 
             if (ongoingSession) {
+                if (ongoingSession.status === 'Cancelled' || ongoingSession.computed_status === 'Cancelled') {
+                    return {
+                        ...baseObj,
+                        live_room_status: 'Cancelled',
+                        cancellation_reason: ongoingSession.cancellation_reason || 'Session cancelled for today',
+                        current_session: ongoingSession,
+                        next_session: null
+                    };
+                }
                 return {
-                    hall_id: hall.hall_id,
-                    hall_code: hall.hall_code,
-                    hall_name: hall.hall_name,
-                    hall_status: hall.hall_status,
-                    capacity: hall.capacity,
+                    ...baseObj,
                     live_room_status: 'Ongoing Now',
+                    cancellation_reason: null,
                     current_session: ongoingSession,
                     next_session: null
                 };
             }
 
-            const upcomingSessions = hallSessions.filter(s => s.computed_status === 'Upcoming');
+            // Check if next session today (or session spanning or starting next) is cancelled
+            const upcomingSessions = hallSessions.filter(s => s.computed_status === 'Upcoming' || s.status === 'Cancelled');
+            const nextSessionToday = hallSessions.find(s => timeToMinutes(s.start_time) >= currentMinutes);
 
-            if (upcomingSessions.length > 0) {
-                const nextSess = upcomingSessions[0];
+            if (nextSessionToday && (nextSessionToday.status === 'Cancelled' || nextSessionToday.computed_status === 'Cancelled')) {
+                return {
+                    ...baseObj,
+                    live_room_status: 'Cancelled',
+                    cancellation_reason: nextSessionToday.cancellation_reason || 'Session cancelled for today',
+                    current_session: null,
+                    next_session: nextSessionToday
+                };
+            }
+
+            const validUpcomingSessions = hallSessions.filter(s => s.computed_status === 'Upcoming');
+
+            if (validUpcomingSessions.length > 0) {
+                const nextSess = validUpcomingSessions[0];
                 const startMins = timeToMinutes(nextSess.start_time);
                 const minutesUntilStart = startMins - currentMinutes;
 
                 if (minutesUntilStart >= 0 && minutesUntilStart <= UPCOMING_THRESHOLD_MINUTES) {
                     return {
-                        hall_id: hall.hall_id,
-                        hall_code: hall.hall_code,
-                        hall_name: hall.hall_name,
-                        hall_status: hall.hall_status,
-                        capacity: hall.capacity,
+                        ...baseObj,
                         live_room_status: 'Upcoming Soon',
+                        cancellation_reason: null,
                         current_session: null,
                         next_session: nextSess
                     };
                 }
 
                 return {
-                    hall_id: hall.hall_id,
-                    hall_code: hall.hall_code,
-                    hall_name: hall.hall_name,
-                    hall_status: hall.hall_status,
-                    capacity: hall.capacity,
+                    ...baseObj,
                     live_room_status: 'Available',
+                    cancellation_reason: null,
                     current_session: null,
                     next_session: nextSess
                 };
             }
 
             const activeOrCompletedToday = hallSessions.filter(s => s.computed_status === 'Completed');
-            if (activeOrCompletedToday.length > 0 && hallSessions.every(s => s.computed_status === 'Completed' || s.computed_status === 'Cancelled')) {
+            if (activeOrCompletedToday.length > 0 && hallSessions.every(s => s.computed_status === 'Completed' || s.computed_status === 'Cancelled' || s.status === 'Cancelled')) {
                 return {
-                    hall_id: hall.hall_id,
-                    hall_code: hall.hall_code,
-                    hall_name: hall.hall_name,
-                    hall_status: hall.hall_status,
-                    capacity: hall.capacity,
+                    ...baseObj,
                     live_room_status: 'Session Finished',
+                    cancellation_reason: null,
                     current_session: null,
                     next_session: null
                 };
             }
 
             return {
-                hall_id: hall.hall_id,
-                hall_code: hall.hall_code,
-                hall_name: hall.hall_name,
-                hall_status: hall.hall_status,
-                capacity: hall.capacity,
+                ...baseObj,
                 live_room_status: 'Available',
+                cancellation_reason: null,
                 current_session: null,
                 next_session: null
             };
