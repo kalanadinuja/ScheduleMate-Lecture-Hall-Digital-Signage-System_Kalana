@@ -11,7 +11,6 @@ import {
     Calendar,
     Tv,
     BarChart3,
-    Settings,
     Monitor
 } from 'lucide-react';
 
@@ -69,17 +68,6 @@ const Sidebar = () => {
                 })}
             </div>
 
-            {/* Bottom Settings Link */}
-            <div className="p-3 border-t border-slate-800/80">
-                <button
-                    type="button"
-                    onClick={() => alert('Settings is an inert UI module.')}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-200 transition-colors"
-                >
-                    <Settings className="w-4 h-4 shrink-0" />
-                    <span>Settings</span>
-                </button>
-            </div>
         </aside>
     );
 };
