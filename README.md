@@ -5,6 +5,7 @@ A full-stack digital signage and live lecture-hall scheduling system for Sparkli
 Built with React + Node.js/Express + PostgreSQL + JWT + REST API + 30-60 second polling.
 
 Developed by Kalana Dinuja
+
 ---
 
 ## Table of Contents
@@ -75,9 +76,8 @@ The platform provides a connected workflow covering:
 | Database Schema + Migrations | Completed |
 | Module-Level Verification | Completed |
 | README and Documentation | Completed |
-| Final PR and Code Review | Pending TL Review |
 
-Development status: The complete ScheduleMate system has been implemented and tested. It is now ready for final code review by the Team Lead.
+Development status: The complete ScheduleMate system has been implemented and tested.
 
 ---
 
@@ -214,6 +214,7 @@ Dashboard and Reports
 
 ## 7. System Architecture
 
+```
 CLIENT (React)
 
 - ADMIN PANEL (Authenticated)
@@ -229,22 +230,25 @@ CLIENT (React)
   - Room status
 
         REST/HTTPS + JWT   |   REST/HTTPS (public)
-                ▼
+                |
+                v
 
 BACKEND (Node.js + Express)
 
-  Routes → Middleware → Controllers → Services → Models
+  Routes -> Middleware -> Controllers -> Services -> Models
 
   - Auth Middleware (JWT)
   - Session Status Service
   - Signage Polling Endpoints
 
-                ▼
+                |
+                v
 
 DATABASE (PostgreSQL)
 
   admins, buildings, floors, floor_sides, lecture_halls,
   modules, lecturers, lecture_sessions, digital_displays
+```
 
 ---
 
@@ -342,55 +346,57 @@ component library's defaults.
 
 ## 9. Repository Structure
 
+```
 ScheduleMate-Lecture-Hall-Digital-Signage-System_Kalana/
-│
-├── client/                              # React Frontend
-│   ├── public/
-│   ├── src/
-│   │   ├── api/                         # Axios + API modules
-│   │   ├── components/
-│   │   │   ├── common/                  # Reusable UI
-│   │   │   └── layout/                  # Sidebar, Topbar, Layout
-│   │   ├── context/                     # AuthContext
-│   │   ├── pages/                       # Admin pages
-│   │   ├── signage/                     # Public signage viewer
-│   │   │   ├── components/
-│   │   │   ├── hooks/
-│   │   │   ├── slides/
-│   │   │   └── SignagePage.js
-│   │   ├── App.js
-│   │   ├── index.js
-│   │   └── index.css
-│   ├── .env.example
-│   ├── package.json
-│   ├── tailwind.config.js
-│   └── postcss.config.js
-│
-├── server/                              # Node.js Backend
-│   ├── src/
-│   │   ├── config/database.js
-│   │   ├── controllers/                 # 11 controllers
-│   │   ├── middleware/                  # auth, errorHandler, logger
-│   │   ├── routes/                      # 11 route files
-│   │   ├── services/                    # 3 services
-│   │   ├── scripts/hashAdminPassword.js
-│   │   └── validations/
-│   ├── .env.example
-│   ├── package.json
-│   └── server.js
-│
-├── database/
-│   ├── schema.sql
-│   ├── seed.sql
-│   └── migrations/
-│       ├── 002_admin_ui_fields.sql
-│       └── 003_signage_hall_notes.sql
-│
-├── docs/
-│   └── ui-reference/                    # High-fidelity mockups
-│
-├── .gitignore
-└── README.md
+|
++-- client/                              # React Frontend
+|   +-- public/
+|   +-- src/
+|   |   +-- api/                         # Axios + API modules
+|   |   +-- components/
+|   |   |   +-- common/                  # Reusable UI
+|   |   |   +-- layout/                  # Sidebar, Topbar, Layout
+|   |   +-- context/                     # AuthContext
+|   |   +-- pages/                       # Admin pages
+|   |   +-- signage/                     # Public signage viewer
+|   |   |   +-- components/
+|   |   |   +-- hooks/
+|   |   |   +-- slides/
+|   |   |   +-- SignagePage.js
+|   |   +-- App.js
+|   |   +-- index.js
+|   |   +-- index.css
+|   +-- .env.example
+|   +-- package.json
+|   +-- tailwind.config.js
+|   +-- postcss.config.js
+|
++-- server/                              # Node.js Backend
+|   +-- src/
+|   |   +-- config/database.js
+|   |   +-- controllers/                 # 11 controllers
+|   |   +-- middleware/                  # auth, errorHandler, logger
+|   |   +-- routes/                      # 11 route files
+|   |   +-- services/                    # 3 services
+|   |   +-- scripts/hashAdminPassword.js
+|   |   +-- validations/
+|   +-- .env.example
+|   +-- package.json
+|   +-- server.js
+|
++-- database/
+|   +-- schema.sql
+|   +-- seed.sql
+|   +-- migrations/
+|       +-- 002_admin_ui_fields.sql
+|       +-- 003_signage_hall_notes.sql
+|
++-- docs/
+|   +-- ui-reference/                    # High-fidelity mockups
+|
++-- .gitignore
++-- README.md
+```
 
 ---
 
@@ -412,12 +418,14 @@ Tables
 
 Relationships
 
+```
 Building 1:N Floor 1:N Floor Side 1:N Lecture Hall
                                         |
                                         v
-Module   ┐                  Lecture Session 1:N Digital Display
-         ├── 1:N ──────────┘   (per floor-side)
-Lecturer ┘
+Module   -+                 Lecture Session 1:N Digital Display
+          +-- 1:N ---------+   (per floor-side)
+Lecturer -+
+```
 
 Migration History
 
